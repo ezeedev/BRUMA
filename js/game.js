@@ -1,8 +1,28 @@
 import {createWorld,TYPES,key,raycast,collides} from './world.js';
 import {Renderer,SoftwareRenderer,direction} from './engine.js';
 import {loadInventory,applyBlockAction} from './inventory.js';
-const $=id=>document.getElementById(id),canvas=$('world');
-let renderer;try{renderer=new Renderer(canvas);}catch(e){try{renderer=new SoftwareRenderer(canvas);}catch(f){$('error').hidden=false;throw f;}}
+const $=id=>document.getElementById(id);
+let canvas=$('world'),renderer;
+try{
+ renderer=new Renderer(canvas);
+}catch(webglError){
+ console.warn('[BRUMA] WebGL no pudo iniciarse; intentando renderizador 2D:',webglError);
+ // Un canvas que ya obtuvo un contexto WebGL no puede cambiarse a 2D.
+ // Reemplazamos el elemento para que el modo alternativo tenga un canvas nuevo.
+ const replacement=document.createElement('canvas');
+ replacement.id=canvas.id;
+ replacement.className=canvas.className;
+ replacement.style.cssText=canvas.style.cssText;
+ canvas.replaceWith(replacement);
+ canvas=replacement;
+ try{renderer=new SoftwareRenderer(canvas);}
+ catch(fallbackError){
+  console.error('[BRUMA] Fallaron ambos renderizadores:',fallbackError);
+  $('error').hidden=false;
+  $('error').querySelector('p').textContent='No se pudo iniciar WebGL ni el modo gráfico alternativo. Abrí la consola (F12) para ver el error técnico.';
+  throw fallbackError;
+ }
+}
 let world=createWorld(),edits={},saveTimer,selected=1,playing=false,started=false,yaw=0,pitch=-.12,hit=null,grounded=false,velocity=0,last=0,drag=null,steps=0,lastMine=0;
 const pos=[0,8,7],keys=new Set(),touch=matchMedia('(pointer:coarse)').matches;
 const STORE='bruma-world-v1';
